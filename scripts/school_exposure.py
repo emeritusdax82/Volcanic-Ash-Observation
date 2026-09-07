@@ -103,6 +103,21 @@ def main():
 
     if current.get('decision', {}).get('official_guidance') == 'ACTIVE': score += 2; reasons.append('Official guidance/impact remains active.')
 
+    iqair_status = iq.get('status')
+    iqair_aqi = iq.get('aqi_us')
+    model_pm25 = aq.get('pm25')
+    gate = {
+        'plume_clear': {'status': 'PASS' if polygon_hits == 0 and alignment == 'AWAY / CROSSWIND' else 'FAIL', 'detail': 'No VAAC low-level polygon intersection and plume is not directed toward the school.' if polygon_hits == 0 and alignment == 'AWAY / CROSSWIND' else 'Atmospheric ash exposure is not cleared.'},
+        'air_quality_clear': {'status': 'PASS' if model_pm25 is not None and model_pm25 < 35 and iqair_status == 'verified_web' and iqair_aqi is not None and iqair_aqi < 101 else 'FAIL', 'detail': 'Both model PM2.5 and fresh IQAir AQI are below escalation thresholds.' if model_pm25 is not None and model_pm25 < 35 and iqair_status == 'verified_web' and iqair_aqi is not None and iqair_aqi < 101 else 'Air quality is not cleared; require acceptable surface evidence from local/official monitoring.'},
+        'ground_truth': {'status': 'UNKNOWN', 'detail': 'Manual school verification required: no visible ash/ashfall and indoor/outdoor conditions acceptable.'},
+        'travel_safe': {'status': 'UNKNOWN', 'detail': 'Manual route/travel safety verification required.'},
+        'official_clearance': {'status': 'FAIL' if current.get('decision', {}).get('official_guidance') == 'ACTIVE' else 'PASS', 'detail': 'Official impact/guidance remains active.' if current.get('decision', {}).get('official_guidance') == 'ACTIVE' else 'No active official restriction detected by the dashboard.'},
+        'stability': {'status': 'UNKNOWN', 'detail': 'Require stable conditions across multiple monitoring cycles before return.'}
+    }
+    gate_pass = all(v['status'] == 'PASS' for v in gate.values())
+    gate['return_eligible'] = gate_pass
+    gate['decision'] = 'CLEARED FOR RETURN' if gate_pass else 'NOT CLEARED — CONTINUE PJJ / REVIEW'
+
     if score >= 9: recommendation, level = 'CONTINUE PJJ', 'CRITICAL'
     elif score >= 6: recommendation, level = 'PJJ — REVIEW SOON', 'HIGH'
     elif score >= 3: recommendation, level = 'MODIFIED / CONTROLLED RETURN', 'WATCH'
@@ -113,27 +128,15 @@ def main():
     if vaac.get('status') != 'verified': confidence = 'LOW'
 
     output = {
-        'fetched_at': datetime.now(WIB).isoformat(timespec='seconds'),
-        'school': school,
-        'volcano': {'latitude': VOLCANO[0], 'longitude': VOLCANO[1]},
+        'fetched_at': datetime.now(WIB).isoformat(timespec='seconds'), 'school': school, 'volcano': {'latitude': VOLCANO[0], 'longitude': VOLCANO[1]},
         'exposure': {'distance_km': round(distance,1), 'bearing_from_volcano_deg': round(bearing,1), 'plume_direction': direction, 'plume_alignment': alignment},
         'vaac_polygon_exposure': polygon_status,
-        'air_quality': {
-            'pm25': aq.get('pm25'), 'pm10': aq.get('pm10'), 'european_aqi': aq.get('european_aqi'),
-            'status': aq.get('status'), 'source': aq.get('source'),
-            'iqair_aqi_us': iq.get('aqi_us'), 'iqair_pm25': iq.get('pm25'), 'iqair_pm10': iq.get('pm10'),
-            'iqair_source': iq.get('source')
-        },
-        'score': score, 'risk_level': level, 'recommendation': recommendation, 'confidence': confidence,
+        'air_quality': {'pm25': aq.get('pm25'), 'pm10': aq.get('pm10'), 'european_aqi': aq.get('european_aqi'), 'status': aq.get('status'), 'source': aq.get('source'), 'iqair_aqi_us': iq.get('aqi_us'), 'iqair_pm25': iq.get('pm25'), 'iqair_pm10': iq.get('pm10'), 'iqair_source': iq.get('source')},
+        'score': score, 'risk_level': level, 'recommendation': recommendation, 'confidence': confidence, 'return_gate': gate,
+        'map': {'low_level_sector': {'direction': vaac.get('lower_direction') or direction, 'polygon': (vaac.get('low_level_polygons') or {}).get('observed')}, 'forecast_6h': (vaac.get('low_level_polygons') or {}).get('forecast_6h'), 'forecast_12h': (vaac.get('low_level_polygons') or {}).get('forecast_12h'), 'forecast_18h': (vaac.get('low_level_polygons') or {}).get('forecast_18h')},
         'reasons': reasons,
-        'limitations': [
-            'Decision-support only; not an official ash forecast.',
-            'VAAC polygon intersection does not model vertical mixing or deposition.',
-            'Open-Meteo/CAMS PM is modelled data; IQAir is a nearby/aggregate secondary source and not an official Indonesian ISPU designation.',
-            'Local ground sensor/ISPU evidence should override modelled or nearby values when available.'
-        ]
+        'limitations': ['Decision-support only; not an official ash forecast.', 'VAAC polygon intersection does not model vertical mixing or deposition.', 'Open-Meteo/CAMS PM is modelled data; IQAir is a nearby/aggregate secondary source and not an official Indonesian ISPU designation.', 'Local ground sensor/ISPU evidence should override modelled or nearby values when available.']
     }
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f: json.dump(output, f, ensure_ascii=False, indent=2)
-
 
 if __name__ == '__main__': main()
