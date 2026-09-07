@@ -124,7 +124,17 @@ def main():
     except Exception as exc:
         errors.append(f'IQAir: {exc}'); iqair = previous.get('sources',{}).get('iqair',{'status':'UNAVAILABLE','aqi_us':None,'pm25':None,'pm10':None}) if previous else {'status':'UNAVAILABLE','aqi_us':None,'pm25':None,'pm10':None}; iqair['status']='stale' if previous else 'unavailable'
     vaac_ok=vaac.get('status')=='verified'; bmkg_ok=bmkg.get('status')=='verified'; aq_ok=air_quality.get('pm25') is not None or air_quality.get('pm10') is not None; iqair_ok=iqair.get('aqi_us') is not None or iqair.get('pm25') is not None
-    data={'status':'HIGH','recommendation':'CONTINUE PJJ','confidence':'HIGH' if vaac_ok and bmkg_ok and aq_ok else 'REDUCED','fetched_at':now,'source_errors':errors,'sources':{'bmkg':bmkg,'vaac':vaac,'pvmbg':{'status':'Level III / Siaga'},'air_quality':air_quality,'iqair':iqair},'decision':{'ash_trajectory':'CRITICAL' if vaac_ok else 'DATA STALE','air_quality':'MODEL + IQAIR CONNECTED' if aq_ok and iqair_ok else ('MODEL CONNECTED' if aq_ok else 'DATA NEEDED'),'school_exposure':'VERIFY','travel':'WATCH','official_guidance':'ACTIVE'}}
+    if aq_ok and iqair_ok:
+        aq_decision = 'MODEL + IQAIR CONNECTED'
+    elif aq_ok and iqair.get('status') == 'stale':
+        aq_decision = 'MODEL CONNECTED · IQAIR STALE'
+    elif aq_ok:
+        aq_decision = 'MODEL CONNECTED'
+    elif iqair_ok:
+        aq_decision = 'IQAIR ONLY'
+    else:
+        aq_decision = 'DATA NEEDED'
+    data={'status':'HIGH','recommendation':'CONTINUE PJJ','confidence':'HIGH' if vaac_ok and bmkg_ok and aq_ok else 'REDUCED','fetched_at':now,'source_errors':errors,'sources':{'bmkg':bmkg,'vaac':vaac,'pvmbg':{'status':'Level III / Siaga'},'air_quality':air_quality,'iqair':iqair},'decision':{'ash_trajectory':'CRITICAL' if vaac_ok else 'DATA STALE','air_quality':aq_decision,'school_exposure':'VERIFY','travel':'WATCH','official_guidance':'ACTIVE'}}
     with open(CURRENT_FILE,'w',encoding='utf-8') as f: json.dump(data,f,ensure_ascii=False,indent=2)
 
 if __name__ == '__main__': main()
