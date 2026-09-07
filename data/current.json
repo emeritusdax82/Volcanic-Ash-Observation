@@ -1,0 +1,39 @@
+{
+  "status": "HIGH",
+  "recommendation": "CONTINUE PJJ",
+  "confidence": "HIGH",
+  "fetched_at": "2026-09-07T09:30:00+07:00",
+  "sources": {
+    "bmkg": {
+      "status": "verified",
+      "ash_altitude_ft": 15000,
+      "direction": "W",
+      "speed_kt": 15,
+      "sigmet_window": "2026-09-07 06:30–09:30 WIB",
+      "affected_region": "Banten, western/southern West Java, Lampung, Bengkulu"
+    },
+    "vaac": {
+      "status": "verified",
+      "advisory": "2026/193",
+      "volcano": "KRAKATAU",
+      "lower_level": "SFC/FL150",
+      "higher_level": "FL500",
+      "note": "Latest Darwin advisory available; interpret plume geometry from the official advisory."
+    },
+    "pvmbg": {
+      "status": "Level III / Siaga"
+    },
+    "air_quality": {
+      "status": "NOT_CONNECTED",
+      "ispu": null,
+      "pm25": null
+    }
+  },
+  "decision": {
+    "ash_trajectory": "CRITICAL",
+    "air_quality": "DATA NEEDED",
+    "school_exposure": "VERIFY",
+    "travel": "WATCH",
+    "official_guidance": "ACTIVE"
+  }
+}
