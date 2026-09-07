@@ -29,6 +29,9 @@ jobs:
       - name: Update official-source snapshot
         run: python scripts/update_data.py
 
+      - name: Run school exposure engine
+        run: python scripts/school_exposure.py
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
