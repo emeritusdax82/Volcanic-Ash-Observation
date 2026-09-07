@@ -1,3 +1,3 @@
 # Volcanic Ash Observation
 
-Dashboard for school decision-making during volcanic ash events.
+School safety decision-support dashboard for Anak Krakatau volcanic ash conditions.
